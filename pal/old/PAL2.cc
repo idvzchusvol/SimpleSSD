@@ -84,8 +84,9 @@ PAL2::PAL2(PALStatistics *statistics, SimpleSSD::PAL::Parameter *p,
   // currently, hard code pre-dma, mem-op and post-dma values
   for (unsigned i = 0; i < pParam->channel; i++) {
     std::map<uint64_t, uint64_t> *tmp;
+    // should invoke c->readInt to get NAND_FLASH_TYPE ?
     switch (
-        c->readUint(SimpleSSD::CONFIG_PAL, SimpleSSD::PAL::NAND_FLASH_TYPE)) {
+        c->readInt(SimpleSSD::CONFIG_PAL, SimpleSSD::PAL::NAND_FLASH_TYPE)) {
       case SimpleSSD::PAL::NAND_SLC:
         tmp = new std::map<uint64_t, uint64_t>;
         ChFreeSlots[i][100000 / SPDIV] = tmp;
