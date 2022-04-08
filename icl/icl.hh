@@ -39,6 +39,7 @@ class ICL : public StatObject {
 
   uint64_t totalLogicalPages;
   uint32_t logicalPageSize;
+  uint32_t hotDataThreshold = 8192; // 8 KB
 
  public:
   ICL(ConfigReader &);

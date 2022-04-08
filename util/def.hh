@@ -66,6 +66,7 @@ typedef struct _Request {
   uint64_t offset;
   uint64_t length;
   LPNRange range;
+  bool isHotDataWrite;
 
   _Request();
   _Request(HIL::Request &);
@@ -80,6 +81,7 @@ typedef struct _Request {
   uint64_t reqSubID;
   uint64_t lpn;
   Bitset ioFlag;
+  bool isHotDataWrite;
 
   _Request(uint32_t);
   _Request(uint32_t, ICL::Request &);
@@ -95,6 +97,7 @@ typedef struct _Request {
   uint32_t blockIndex;
   uint32_t pageIndex;
   Bitset ioFlag;
+  bool isHotDataWrite;
 
   _Request(uint32_t);
   _Request(FTL::Request &);

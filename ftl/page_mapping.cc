@@ -38,16 +38,22 @@ PageMapping::PageMapping(ConfigReader &c, Parameter &p, PAL::PAL *l,
       lastFreeBlock(param.pageCountToMaxPerf),
       lastFreeBlockIOMap(param.ioUnitInPage),
       bReclaimMore(false) {
-  blocks.reserve(param.totalPhysicalBlocks);
-  table.reserve(param.totalLogicalBlocks * param.pagesInBlock);
+  circleBuffer.totalBlock = conf.readUInt(CONFIG_FTL, FTL_SLC_BUFFER_SIZE);
+  circleBuffer.totalPage = circleBuffer.totalBlock * param.pagesInBlock;
 
-  for (uint32_t i = 0; i < param.totalPhysicalBlocks; i++) {
+  blocks.reserve(param.totalPhysicalBlocks - circleBuffer.totalBlock);
+  table.reserve(param.totalLogicalBlocks * param.pagesInBlock - circleBuffer.totalPage);
+
+  // what's difference between totalPhysicalBlocks and totalLogicalBlocks?
+
+  for (uint32_t i = 0; i < param.totalPhysicalBlocks - circleBuffer.totalBlock; i++) {
     freeBlocks.emplace_back(Block(i, param.pagesInBlock, param.ioUnitInPage));
   }
 
-  nFreeBlocks = param.totalPhysicalBlocks;
+  nFreeBlocks = param.totalPhysicalBlocks - circleBuffer.totalBlock;
 
-  status.totalLogicalPages = param.totalLogicalBlocks * param.pagesInBlock;
+  status.totalLogicalPages = param.totalLogicalBlocks * param.pagesInBlock - circleBuffer.totalPage;
+
 
   // Allocate free blocks
   for (uint32_t i = 0; i < param.pageCountToMaxPerf; i++) {
@@ -55,6 +61,12 @@ PageMapping::PageMapping(ConfigReader &c, Parameter &p, PAL::PAL *l,
   }
 
   lastFreeBlockIndex = 0;
+
+  bufferBlockPBN.reserve(circleBuffer.totalBlock);
+  for (uint32_t i = 0; i < circleBuffer.totalBlock; i++) {
+    bufferBlockPBN.at(i) = param.totalPhysicalBlocks + i;
+    bufferBlocks.emplace_back(Block(param.totalPhysicalBlocks + i, param.pagesInBlock, param.ioUnitInPage));
+  }
 
   memset(&stat, 0, sizeof(stat));
 
@@ -78,7 +90,7 @@ bool PageMapping::initialize() {
 
   debugprint(LOG_FTL_PAGE_MAPPING, "Initialization started");
 
-  nTotalLogicalPages = param.totalLogicalBlocks * param.pagesInBlock;
+  nTotalLogicalPages = param.totalLogicalBlocks * param.pagesInBlock - circleBuffer.size;
   nPagesToWarmup =
       nTotalLogicalPages * conf.readFloat(CONFIG_FTL, FTL_FILL_RATIO);
   nPagesToInvalidate =
@@ -86,7 +98,7 @@ bool PageMapping::initialize() {
   mode = (FILLING_MODE)conf.readUint(CONFIG_FTL, FTL_FILLING_MODE);
   maxPagesBeforeGC =
       param.pagesInBlock *
-      (param.totalPhysicalBlocks *
+      ((param.totalPhysicalBlocks - circleBuffer.totalBlock) *
            (1 - conf.readFloat(CONFIG_FTL, FTL_GC_THRESHOLD_RATIO)) -
        param.pageCountToMaxPerf);  // # free blocks to maintain
 
@@ -346,6 +358,24 @@ uint32_t PageMapping::getFreeBlock(uint32_t idx) {
   return blockIndex;
 }
 
+uint32_t PageMapping::getLastFreeBufferBlock(Bitset &iomap, uint64_t &tick) {
+  auto freeBufferBlock = bufferBlocks.find(lastFreeBufferBlock.at(circleBuffer.head));
+
+  if (freeBufferBlock == bufferBlocks.end()) {
+    panic("Corrupted");
+  }
+
+  while (freeBufferBlock->second.getNextWritePageIndex() == param.pagesInBlock) {
+    circleBuffer.push();
+    if (circleBuffer.isFull()) {
+      doBufferGarbageCollection(tick);
+    }
+    freeBufferBlock = bufferBlocks.find(lastFreeBufferBlock.at(circleBuffer.head));
+  }
+
+  return bufferBlocks.find(lastFreeBufferBlock.at(circleBuffer.head));
+}
+
 uint32_t PageMapping::getLastFreeBlock(Bitset &iomap) {
   if (!bRandomTweak || (lastFreeBlockIOMap & iomap).any()) {
     // Update lastFreeBlockIndex
@@ -488,6 +518,11 @@ void PageMapping::selectVictimBlock(std::vector<uint32_t> &list,
   }
 
   tick += applyLatency(CPU::FTL__PAGE_MAPPING, CPU::SELECT_VICTIM_BLOCK);
+}
+
+void PageMapping::doBufferGarbageCollection(uint64_t &tick) {
+  doGarbageCollection(std::vector<uint32_t> {bufferBlockPBN.at(circleBuffer.tail)}, tick);
+  circleBuffer.pop();
 }
 
 void PageMapping::doGarbageCollection(std::vector<uint32_t> &blocksToReclaim,
@@ -709,10 +744,13 @@ void PageMapping::writeInternal(Request &req, uint64_t &tick, bool sendToPAL) {
   }
 
   // Write data to free block
-  block = blocks.find(getLastFreeBlock(req.ioFlag));
-
-  if (block == blocks.end()) {
-    panic("No such block");
+  if (req.isHotDataWrite) {
+    block = bufferBlocks.find(getLastFreeBufferBlock(req.ioFlag));
+  } else {
+    block = blocks.find(getLastFreeBlock(req.ioFlag));
+    if (block == blocks.end()) {
+      panic("No such block");
+    }
   }
 
   if (sendToPAL) {

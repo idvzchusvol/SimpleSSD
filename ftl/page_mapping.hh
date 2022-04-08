@@ -40,13 +40,41 @@ class PageMapping : public AbstractFTL {
   ConfigReader &conf;
 
   std::unordered_map<uint64_t, std::vector<std::pair<uint32_t, uint32_t>>>
-      table;
+      table; // (lpn, idx) -> (Physical Block, Physical Page)
   std::unordered_map<uint32_t, Block> blocks;
+  std::unordered_map<uint32_t, Block> bufferBlocks;
   std::list<Block> freeBlocks;
   uint32_t nFreeBlocks;  // For some libraries which std::list::size() is O(n)
-  std::vector<uint32_t> lastFreeBlock;
+  std::vector<uint32_t> freeBlock; // freeblock physical block number
   Bitset lastFreeBlockIOMap;
   uint32_t lastFreeBlockIndex;
+
+  std::vector<uint32_t> bufferBlockPBN; // buffer Physical Block Number
+  Bitset lastFreeBufferBlockIOMap;
+
+  struct {
+    uint64_t head;
+    uint64_t tail;
+    uint64_t totalBlock;
+    uint64_t totalPage;
+
+    bool isFull() {
+      return (head + 1) % totalBlock == tail;
+    }
+
+    uint64_t push() {
+      head = (head + 1) % totalBlock;
+      return head;
+    }
+
+    void pop() {
+      tail = (tail + 1) % totalBlock;
+      return tail;
+    }
+
+  } circleBuffer;
+
+  uint32_t getLastFreeBufferBlock(Bitset &, uint64_t &);
 
   bool bReclaimMore;
   bool bRandomTweak;
@@ -67,6 +95,7 @@ class PageMapping : public AbstractFTL {
                              const EVICT_POLICY, uint64_t);
   void selectVictimBlock(std::vector<uint32_t> &, uint64_t &);
   void doGarbageCollection(std::vector<uint32_t> &, uint64_t &);
+  void doBufferGarbageCollection(uint64_t &);
 
   float calculateWearLeveling();
   void calculateTotalPages(uint64_t &, uint64_t &);

@@ -53,6 +53,7 @@ Config::Config() {
   evictPolicy = POLICY_GREEDY;
   dChoiceParam = 3;
   randomIOTweak = true;
+  bufferSize = (1 << 20);
 }
 
 bool Config::setConfig(const char *name, const char *value) {
@@ -155,6 +156,9 @@ uint64_t Config::readUint(uint32_t idx) {
       break;
     case FTL_GC_D_CHOICE_PARAM:
       ret = dChoiceParam;
+      break;
+    case FTL_SLC_BUFFER_SIZE:
+      ret = bufferSize;
       break;
   }
 
