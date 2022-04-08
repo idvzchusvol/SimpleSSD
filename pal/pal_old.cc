@@ -156,6 +156,7 @@ void PALOLD::erase(Request &req, uint64_t &tick) {
   tick = finishedAt;
 }
 
+// (blockIndex, pageIndex) -> (Channel, Package, Die, Plane, Block, Page)
 void PALOLD::convertCPDPBP(Request &req, std::vector<::CPDPBP> &list) {
   ::CPDPBP addr;
   static uint32_t pageAllocation = conf.getPageAllocationConfig();

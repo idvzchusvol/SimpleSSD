@@ -693,8 +693,11 @@ void PageMapping::readInternal(Request &req, uint64_t &tick) {
           }
 
           auto block = blocks.find(palRequest.blockIndex);
+          
+          if (palRequest.blockIndex >= param.totalPhysicalBlocks - circleBuffer.totalBlock)
+            block = bufferBlocks.find(palRequest.blockIndex);
 
-          if (block == blocks.end()) {
+          if (block == blocks.end() || block == bufferBlocks.end()) {
             panic("Block is not in use");
           }
 
@@ -728,7 +731,10 @@ void PageMapping::writeInternal(Request &req, uint64_t &tick, bool sendToPAL) {
 
         if (mapping.first < param.totalPhysicalBlocks &&
             mapping.second < param.pagesInBlock) {
-          block = blocks.find(mapping.first);
+
+          if (mapping.first < param.totalPhysicalBlocks - circleBuffer.totalBlock)
+            block = blocks.find(mapping.first);
+          else block = bufferBlocks.find(mapping.first); 
 
           // Invalidate current page
           block->second.invalidate(mapping.second, idx);
@@ -871,6 +877,9 @@ void PageMapping::trimInternal(Request &req, uint64_t &tick) {
     for (uint32_t idx = 0; idx < bitsetSize; idx++) {
       auto &mapping = mappingList->second.at(idx);
       auto block = blocks.find(mapping.first);
+
+      if (mapping.first >= param.totalPhysicalBlocks - circleBuffer.totalBlock)
+        block = bufferBlocks.find(mapping.first);
 
       if (block == blocks.end()) {
         panic("Block is not in use");
