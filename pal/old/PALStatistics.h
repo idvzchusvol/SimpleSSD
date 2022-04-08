@@ -51,6 +51,7 @@ typedef struct _Command {
   PAL_OPERATION operation;
   bool mergeSnapshot;
   uint64_t size;
+  NAND_TYPE nandType;
 
   _Command()
       : arrived(0),
@@ -58,14 +59,25 @@ typedef struct _Command {
         ppn(0),
         operation(OPER_NUM),
         mergeSnapshot(false),
-        size(0) {}
+        size(0),
+        nandType(NAND_MLC) {}
   _Command(Tick t, Addr a, PAL_OPERATION op, uint64_t s)
       : arrived(t),
         finished(0),
         ppn(a),
         operation(op),
         mergeSnapshot(false),
-        size(s) {}
+        size(s),
+        nandType(NAND_MLC) {}
+  
+  _Command(Tick t, Addr a, PAL_OPERATION op, uint64_t s, NAND_TYPE type)
+      : arrived(t),
+        finished(0),
+        ppn(a),
+        operation(op),
+        mergeSnapshot(false),
+        size(s),
+        nandType(type) {}
 
   Tick getLatency() {
     if (finished > 0) {

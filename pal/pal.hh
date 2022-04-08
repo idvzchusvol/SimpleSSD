@@ -40,6 +40,7 @@ typedef struct {
   uint32_t pageSize;         //!< Size of page in bytes
   uint32_t superPageSize;    //!< Size of super page in bytes
   uint32_t pageInSuperPage;  //!< # pages in one superpage
+  uint32_t bufferBaseBlock;  //!< 
 } Parameter;
 
 class PAL : public StatObject {

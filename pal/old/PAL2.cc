@@ -133,7 +133,8 @@ PAL2::PAL2(PALStatistics *statistics, SimpleSSD::PAL::Parameter *p,
   for (unsigned i = 0; i < totalDie; i++) {
     std::map<uint64_t, uint64_t> *tmp;
     switch (
-        c->readUint(SimpleSSD::CONFIG_PAL, SimpleSSD::PAL::NAND_FLASH_TYPE)) {
+        // should call readInt to get correct NAND FLASH TYPE 
+        c->readInt(SimpleSSD::CONFIG_PAL, SimpleSSD::PAL::NAND_FLASH_TYPE)) {
       case SimpleSSD::PAL::NAND_SLC:
         tmp = new std::map<uint64_t, uint64_t>;
         DieFreeSlots[i][25000000 + 100000 / SPDIV] = tmp;
