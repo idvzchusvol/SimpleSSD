@@ -521,12 +521,12 @@ void PageMapping::selectVictimBlock(std::vector<uint32_t> &list,
 }
 
 void PageMapping::doBufferGarbageCollection(uint64_t &tick) {
-  doGarbageCollection(std::vector<uint32_t> {bufferBlockPBN.at(circleBuffer.tail)}, tick);
+  doGarbageCollection(std::vector<uint32_t> {bufferBlockPBN.at(circleBuffer.tail)}, tick, true);
   circleBuffer.pop();
 }
 
 void PageMapping::doGarbageCollection(std::vector<uint32_t> &blocksToReclaim,
-                                      uint64_t &tick) {
+                                      uint64_t &tick, bool fromBuffer) {
   PAL::Request req(param.ioUnitInPage);
   std::vector<PAL::Request> readRequests;
   std::vector<PAL::Request> writeRequests;
@@ -545,9 +545,16 @@ void PageMapping::doGarbageCollection(std::vector<uint32_t> &blocksToReclaim,
   // For all blocks to reclaim, collecting request structure only
   for (auto &iter : blocksToReclaim) {
     auto block = blocks.find(iter);
+    if (fromBuffer) block = bufferBlocks.find(iter);
 
-    if (block == blocks.end()) {
-      panic("Invalid block");
+    if (!fromBuffer) {
+      if (block == blocks.end()) {
+        panic("no such block in blocks");
+      }
+    } else {
+      if (block == bufferBlocks.end()) {
+        panic("no such block in bufferBlocks");
+      }
     }
 
     // Copy valid pages to free block
@@ -879,13 +886,14 @@ void PageMapping::trimInternal(Request &req, uint64_t &tick) {
   }
 }
 
-void PageMapping::eraseInternal(PAL::Request &req, uint64_t &tick) {
+void PageMapping::eraseInternal(PAL::Request &req, uint64_t &tick, bool fromBuffer) {
   static uint64_t threshold =
       conf.readUint(CONFIG_FTL, FTL_BAD_BLOCK_THRESHOLD);
   auto block = blocks.find(req.blockIndex);
+  if (fromBuffer) block = bufferBlocks.find(req.blockIndex);
 
   // Sanity checks
-  if (block == blocks.end()) {
+  if (block == blocks.end() || block == bufferBlocks.end()) {
     panic("No such block");
   }
 
@@ -901,32 +909,34 @@ void PageMapping::eraseInternal(PAL::Request &req, uint64_t &tick) {
   // Check erase count
   uint32_t erasedCount = block->second.getEraseCount();
 
-  if (erasedCount < threshold) {
-    // Reverse search
-    auto iter = freeBlocks.end();
+  if (!fromBuffer) {
+    if (erasedCount < threshold) {
+      // Reverse search
+      auto iter = freeBlocks.end();
 
-    while (true) {
-      iter--;
+      while (true) {
+        iter--;
 
-      if (iter->getEraseCount() <= erasedCount) {
-        // emplace: insert before pos
-        iter++;
+        if (iter->getEraseCount() <= erasedCount) {
+          // emplace: insert before pos
+          iter++;
 
-        break;
+          break;
+        }
+
+        if (iter == freeBlocks.begin()) {
+          break;
+        }
       }
 
-      if (iter == freeBlocks.begin()) {
-        break;
-      }
+      // Insert block to free block list
+      freeBlocks.emplace(iter, std::move(block->second));
+      nFreeBlocks++;
     }
 
-    // Insert block to free block list
-    freeBlocks.emplace(iter, std::move(block->second));
-    nFreeBlocks++;
+    // Remove block from block list
+    blocks.erase(block);
   }
-
-  // Remove block from block list
-  blocks.erase(block);
 
   tick += applyLatency(CPU::FTL__PAGE_MAPPING, CPU::ERASE_INTERNAL);
 }

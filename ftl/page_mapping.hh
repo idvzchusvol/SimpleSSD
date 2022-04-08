@@ -94,7 +94,7 @@ class PageMapping : public AbstractFTL {
   void calculateVictimWeight(std::vector<std::pair<uint32_t, float>> &,
                              const EVICT_POLICY, uint64_t);
   void selectVictimBlock(std::vector<uint32_t> &, uint64_t &);
-  void doGarbageCollection(std::vector<uint32_t> &, uint64_t &);
+  void doGarbageCollection(std::vector<uint32_t> &, uint64_t &, bool = false);
   void doBufferGarbageCollection(uint64_t &);
 
   float calculateWearLeveling();
@@ -103,7 +103,7 @@ class PageMapping : public AbstractFTL {
   void readInternal(Request &, uint64_t &);
   void writeInternal(Request &, uint64_t &, bool = true);
   void trimInternal(Request &, uint64_t &);
-  void eraseInternal(PAL::Request &, uint64_t &);
+  void eraseInternal(PAL::Request &, uint64_t &, book = false);
 
  public:
   PageMapping(ConfigReader &, Parameter &, PAL::PAL *, DRAM::AbstractDRAM *);
