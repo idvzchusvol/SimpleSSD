@@ -31,6 +31,10 @@ PAL::PAL(ConfigReader &c) : conf(c) {
   uint8_t superblock = conf.getSuperblockConfig();
 
   param.channel = conf.readUint(CONFIG_PAL, PAL_CHANNEL);
+  param.slcChannel = conf.readUint(CONFIG_PAL, PAL_SLC_CHANNEL);
+  if (param.channel < param.slcChannel) {
+    panic("total channels should be greater than slcChannels");
+  }
   param.package = conf.readUint(CONFIG_PAL, PAL_PACKAGE);
 
   param.die = conf.readUint(CONFIG_PAL, NAND_DIE);

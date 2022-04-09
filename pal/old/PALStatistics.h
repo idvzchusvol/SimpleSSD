@@ -51,6 +51,7 @@ typedef struct _Command {
   PAL_OPERATION operation;
   bool mergeSnapshot;
   uint64_t size;
+  bool isFromBuffer;
   NAND_TYPE nandType;
 
   _Command()
@@ -60,6 +61,7 @@ typedef struct _Command {
         operation(OPER_NUM),
         mergeSnapshot(false),
         size(0),
+        isFromBuffer(false),
         nandType(NAND_MLC) {}
   _Command(Tick t, Addr a, PAL_OPERATION op, uint64_t s)
       : arrived(t),
@@ -68,15 +70,17 @@ typedef struct _Command {
         operation(op),
         mergeSnapshot(false),
         size(s),
+        isFromBuffer(false),
         nandType(NAND_MLC) {}
   
-  _Command(Tick t, Addr a, PAL_OPERATION op, uint64_t s, NAND_TYPE type)
+  _Command(Tick t, Addr a, PAL_OPERATION op, uint64_t s, bool iFB, NAND_TYPE type)
       : arrived(t),
         finished(0),
         ppn(a),
         operation(op),
         mergeSnapshot(false),
         size(s),
+        isFromBuffer(iFB),
         nandType(type) {}
 
   Tick getLatency() {
@@ -115,6 +119,7 @@ class PALStatistics {
 
   SimpleSSD::ConfigReader *gconf;
   Latency *lat;
+  Latency *latency[3];
   uint64_t totalDie;
 
 #if 0  // ch-die io count (legacy)

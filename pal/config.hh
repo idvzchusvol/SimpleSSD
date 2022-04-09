@@ -30,6 +30,7 @@ typedef enum {
   /* PAL config */
   PAL_CHANNEL,
   PAL_PACKAGE,
+  PAL_SLC_CHANNEL,
 
   /* NAND config TODO: seperate this */
   NAND_DIE,

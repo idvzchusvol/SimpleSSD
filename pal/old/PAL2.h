@@ -54,6 +54,7 @@ class PAL2  // let's not inherit PAL1
   std::list<TimeSlot> MergedTimeSlots;  // for gathering busy time
 
   uint64_t totalDie;
+  uint64_t slcDieBase;
 
   std::map<uint64_t, uint64_t> OpTimeStamp[3];
 

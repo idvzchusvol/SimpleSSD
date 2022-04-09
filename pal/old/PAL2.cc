@@ -26,6 +26,13 @@ PAL2::PAL2(PALStatistics *statistics, SimpleSSD::PAL::Parameter *p,
     : pParam(p), lat(l), stats(statistics) {
   uint32_t OriginalSizes[7];
 
+  Config::NANDTiming *pTiming = c->getNANDTiming();
+  Config::NANDPower *pPower = c->getNANDPower();
+
+  latency[NAND_SLC] = new LatencySLC(*pTiming, *pPower);
+  latency[NAND_MLC] = new LatencyMLC(*pTiming, *pPower);
+  latency[NAND_TLC] = new LatencyTLC(*pTiming, *pPower);
+
   uint32_t SPDIV =
       c->readUint(SimpleSSD::CONFIG_PAL, SimpleSSD::PAL::NAND_DMA_SPEED) / 50;
   uint32_t PGDIV = 16384 / c->readUint(SimpleSSD::CONFIG_PAL,
@@ -68,6 +75,7 @@ PAL2::PAL2(PALStatistics *statistics, SimpleSSD::PAL::Parameter *p,
   }
 
   totalDie = pParam->channel * pParam->package * pParam->die;
+  slcDieBase = (pParam->channel - pParam->slcChannel) * pParam->package * pParam->die;
 
   ChFreeSlots =
       new std::map<uint64_t, std::map<uint64_t, uint64_t> *>[pParam->channel];
@@ -85,8 +93,9 @@ PAL2::PAL2(PALStatistics *statistics, SimpleSSD::PAL::Parameter *p,
   for (unsigned i = 0; i < pParam->channel; i++) {
     std::map<uint64_t, uint64_t> *tmp;
     // should invoke c->readInt to get NAND_FLASH_TYPE ?
-    switch (
-        c->readInt(SimpleSSD::CONFIG_PAL, SimpleSSD::PAL::NAND_FLASH_TYPE)) {
+    SimpleSSD::PAL::NAND_TYPE type = c->readInt(SimpleSSD::CONFIG_PAL, SimpleSSD::PAL::NAND_FLASH_TYPE);
+    if (i >= pParam->channel - pParam->slcCahnnel) type = SimpleSSD::PAL::NAND_SLC;
+    switch (type) {
       case SimpleSSD::PAL::NAND_SLC:
         tmp = new std::map<uint64_t, uint64_t>;
         ChFreeSlots[i][100000 / SPDIV] = tmp;
@@ -132,9 +141,10 @@ PAL2::PAL2(PALStatistics *statistics, SimpleSSD::PAL::Parameter *p,
 
   for (unsigned i = 0; i < totalDie; i++) {
     std::map<uint64_t, uint64_t> *tmp;
-    switch (
-        // should call readInt to get correct NAND FLASH TYPE 
-        c->readInt(SimpleSSD::CONFIG_PAL, SimpleSSD::PAL::NAND_FLASH_TYPE)) {
+    // should call readInt to get correct NAND FLASH TYPE
+    SimpleSSD::PAL::NAND_TYPE type = c->readInt(SimpleSSD::CONFIG_PAL, SimpleSSD::PAL::NAND_FLASH_TYPE);
+    if (i >= slcDieBase) type = SimpleSSD::PAL::NAND_SLC;
+    switch (type) {
       case SimpleSSD::PAL::NAND_SLC:
         tmp = new std::map<uint64_t, uint64_t>;
         DieFreeSlots[i][25000000 + 100000 / SPDIV] = tmp;
@@ -224,10 +234,18 @@ void PAL2::TimelineScheduling(Command &req, CPDPBP &reqCPD) {
     uint64_t DMA0tickFrom, MEMtickFrom, DMA1tickFrom;  // starting point
     uint64_t latANTI;                                  // anticipate time slot
     bool conflicts;  // check conflict when scheduling
-    latDMA0 = lat->GetLatency(reqCPD.Page, req.operation, BUSY_DMA0);
-    latMEM = lat->GetLatency(reqCPD.Page, req.operation, BUSY_MEM);
-    latDMA1 = lat->GetLatency(reqCPD.Page, req.operation, BUSY_DMA1);
-    latANTI = lat->GetLatency(reqCPD.Page, OPER_READ, BUSY_DMA0);
+    latDMA0 = isFromBuffer ? latency[req.nandType]->GetLatency(reqCPD.Page, req.opreation, BUSY_DMA0) : 
+                              lat->GetLatency(reqCPD.Page, req.operation, BUSY_DMA0);
+    
+    latMEM = isFromBuffer ? latency[req.nandType]->GetLatency(reqCPD.Page, req.operation, BUSY_MEM) :
+                              lat->GetLatency(reqCPD.Page, req.operation, BUSY_MEM);
+    
+    latDMA1 = isFromBuffer ? latency[req.nandType]->GetLatency(reqCPD.Page, req.operation, BUSY_DMA1) :
+                              lat->GetLatency(reqCPD.Page, req.operation, BUSY_DMA1);
+    
+    latANTI = isFromBuffer ? latency[req.nandType]->GetLatency(reqCPD.Page, OPER_READ, BUSY_DMA0) :
+                              lat->GetLatency(reqCPD.Page, OPER_READ, BUSY_DMA0);
+    
     // Start Finding available Slot
     DMA0tickFrom = req.arrived;  // get Current System Time
     while (1)                    // LOOP0

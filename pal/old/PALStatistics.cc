@@ -518,6 +518,13 @@ PALStatistics::PALStatistics(SimpleSSD::ConfigReader *c, Latency *l)
 
   InitStats();
 
+  Config::NANDTiming *pTiming = c->getNANDTiming();
+  Config::NANDPower *pPower = c->getNANDPower();
+
+  latency[NAND_SLC] = new LatencySLC(*pTiming, *pPower);
+  latency[NAND_MLC] = new LatencyMLC(*pTiming, *pPower);
+  latency[NAND_TLC] = new LatencyTLC(*pTiming, *pPower);
+
   SampledTick = 0;
   skip = true;
 }
