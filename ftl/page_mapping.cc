@@ -64,8 +64,8 @@ PageMapping::PageMapping(ConfigReader &c, Parameter &p, PAL::PAL *l,
 
   bufferBlockPBN.reserve(circleBuffer.totalBlock);
   for (uint32_t i = 0; i < circleBuffer.totalBlock; i++) {
-    bufferBlockPBN.at(i) = param.totalPhysicalBlocks + i;
-    bufferBlocks.emplace_back(Block(param.totalPhysicalBlocks + i, param.pagesInBlock, param.ioUnitInPage));
+    bufferBlockPBN.at(i) = param.totalPhysicalBlocks - circleBuffer.totalBlock + i;
+    bufferBlocks.emplace_back(Block(param.totalPhysicalBlocks - circleBuffer.totalBlock + i, param.pagesInBlock, param.ioUnitInPage));
   }
 
   memset(&stat, 0, sizeof(stat));
@@ -359,7 +359,7 @@ uint32_t PageMapping::getFreeBlock(uint32_t idx) {
 }
 
 uint32_t PageMapping::getLastFreeBufferBlock(Bitset &iomap, uint64_t &tick) {
-  auto freeBufferBlock = bufferBlocks.find(lastFreeBufferBlock.at(circleBuffer.head));
+  auto freeBufferBlock = bufferBlocks.find(bufferBlockPBN.at(circleBuffer.head));
 
   if (freeBufferBlock == bufferBlocks.end()) {
     panic("Corrupted");
@@ -370,10 +370,10 @@ uint32_t PageMapping::getLastFreeBufferBlock(Bitset &iomap, uint64_t &tick) {
     if (circleBuffer.isFull()) {
       doBufferGarbageCollection(tick);
     }
-    freeBufferBlock = bufferBlocks.find(lastFreeBufferBlock.at(circleBuffer.head));
+    freeBufferBlock = bufferBlocks.find(bufferBlockPBN.at(circleBuffer.head));
   }
 
-  return bufferBlocks.find(lastFreeBufferBlock.at(circleBuffer.head));
+  return bufferBlocks.find(bufferBlockPBN.at(circleBuffer.head));
 }
 
 uint32_t PageMapping::getLastFreeBlock(Bitset &iomap) {
