@@ -44,6 +44,8 @@ PageMapping::PageMapping(ConfigReader &c, Parameter &p, PAL::PAL *l,
   blocks.reserve(param.totalPhysicalBlocks - circleBuffer.totalBlock);
   table.reserve(param.totalLogicalBlocks * param.pagesInBlock - circleBuffer.totalPage);
 
+  bufferBlocks.reserve(circleBuffer.totalBlock);
+
   // what's difference between totalPhysicalBlocks and totalLogicalBlocks?
 
   for (uint32_t i = 0; i < param.totalPhysicalBlocks - circleBuffer.totalBlock; i++) {
@@ -358,7 +360,7 @@ uint32_t PageMapping::getFreeBlock(uint32_t idx) {
   return blockIndex;
 }
 
-uint32_t PageMapping::getLastFreeBufferBlock(Bitset &iomap, uint64_t &tick) {
+uint32_t PageMapping::getLastFreeBufferBlock(uint64_t &tick) {
   auto freeBufferBlock = bufferBlocks.find(bufferBlockPBN.at(circleBuffer.head));
 
   if (freeBufferBlock == bufferBlocks.end()) {
@@ -373,7 +375,7 @@ uint32_t PageMapping::getLastFreeBufferBlock(Bitset &iomap, uint64_t &tick) {
     freeBufferBlock = bufferBlocks.find(bufferBlockPBN.at(circleBuffer.head));
   }
 
-  return bufferBlocks.find(bufferBlockPBN.at(circleBuffer.head));
+  return bufferBlockPBN.at(circleBuffer.head);
 }
 
 uint32_t PageMapping::getLastFreeBlock(Bitset &iomap) {
@@ -521,7 +523,8 @@ void PageMapping::selectVictimBlock(std::vector<uint32_t> &list,
 }
 
 void PageMapping::doBufferGarbageCollection(uint64_t &tick) {
-  doGarbageCollection(std::vector<uint32_t> {bufferBlockPBN.at(circleBuffer.tail)}, tick, true);
+  std::vector<uint32_t> A{bufferBlockPBN.at(circleBuffer.tail)};
+  doGarbageCollection(A, tick, true);
   circleBuffer.pop();
 }
 

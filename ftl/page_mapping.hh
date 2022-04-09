@@ -91,6 +91,7 @@ class PageMapping : public AbstractFTL {
   uint32_t convertBlockIdx(uint32_t);
   uint32_t getFreeBlock(uint32_t);
   uint32_t getLastFreeBlock(Bitset &);
+  uint32_t getLastFreeBufferBlock(uint64_t &);
   void calculateVictimWeight(std::vector<std::pair<uint32_t, float>> &,
                              const EVICT_POLICY, uint64_t);
   void selectVictimBlock(std::vector<uint32_t> &, uint64_t &);
@@ -103,7 +104,7 @@ class PageMapping : public AbstractFTL {
   void readInternal(Request &, uint64_t &);
   void writeInternal(Request &, uint64_t &, bool = true);
   void trimInternal(Request &, uint64_t &);
-  void eraseInternal(PAL::Request &, uint64_t &, book = false);
+  void eraseInternal(PAL::Request &, uint64_t &, bool = false);
 
  public:
   PageMapping(ConfigReader &, Parameter &, PAL::PAL *, DRAM::AbstractDRAM *);
