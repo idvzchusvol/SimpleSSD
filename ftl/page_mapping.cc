@@ -38,7 +38,7 @@ PageMapping::PageMapping(ConfigReader &c, Parameter &p, PAL::PAL *l,
       lastFreeBlock(param.pageCountToMaxPerf),
       lastFreeBlockIOMap(param.ioUnitInPage),
       bReclaimMore(false) {
-  circleBuffer.totalBlock = conf.readUInt(CONFIG_FTL, FTL_SLC_BUFFER_SIZE);
+  circleBuffer.totalBlock = conf.readUint(CONFIG_FTL, FTL_SLC_BUFFER_SIZE);
   circleBuffer.totalPage = circleBuffer.totalBlock * param.pagesInBlock;
 
   blocks.reserve(param.totalPhysicalBlocks - circleBuffer.totalBlock);
@@ -90,7 +90,7 @@ bool PageMapping::initialize() {
 
   debugprint(LOG_FTL_PAGE_MAPPING, "Initialization started");
 
-  nTotalLogicalPages = param.totalLogicalBlocks * param.pagesInBlock - circleBuffer.size;
+  nTotalLogicalPages = param.totalLogicalBlocks * param.pagesInBlock - circleBuffer.totalPage;
   nPagesToWarmup =
       nTotalLogicalPages * conf.readFloat(CONFIG_FTL, FTL_FILL_RATIO);
   nPagesToInvalidate =

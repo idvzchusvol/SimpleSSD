@@ -45,7 +45,7 @@ class PageMapping : public AbstractFTL {
   std::unordered_map<uint32_t, Block> bufferBlocks;
   std::list<Block> freeBlocks;
   uint32_t nFreeBlocks;  // For some libraries which std::list::size() is O(n)
-  std::vector<uint32_t> freeBlock; // freeblock physical block number
+  std::vector<uint32_t> lastFreeBlock; // freeblock physical block number
   Bitset lastFreeBlockIOMap;
   uint32_t lastFreeBlockIndex;
 
@@ -67,7 +67,7 @@ class PageMapping : public AbstractFTL {
       return head;
     }
 
-    void pop() {
+    uint64_t pop() {
       tail = (tail + 1) % totalBlock;
       return tail;
     }
