@@ -68,6 +68,7 @@ const uint8_t eraseCycle = 5;
 
 Config::Config() {
   channel = 8;
+  slcChannel = 2;
   package = 4;
   die = 2;
   plane = 1;
@@ -78,6 +79,7 @@ Config::Config() {
   dmaSpeed = 400;
   dmaWidth = 8;
   nandType = NAND_MLC;
+  bufferNANDType = NAND_SLC;
 
   // Set NAND timing (Default: MLC, csb is not used)
   // TODO:: set SLC, MLC, TLC     NAND timing
@@ -88,6 +90,14 @@ Config::Config() {
   nandTiming.msb.read = 65000000;     // 65us
   nandTiming.msb.write = 1300000000;  // 1300us
   nandTiming.erase = 3500000000;      // 3.5ms
+
+  bufferTiming.lsb.read = 3000000;
+  bufferTiming.lsb.write = 80000000;
+  bufferTiming.csb.read = 0;
+  bufferTiming.csb.write = 0;
+  bufferTiming.msb.read = 0;
+  bufferTiming.msb.write = 0;
+  bufferTiming.erase = 1000000000;
 
   // Set NAND power (From: Micron's MT29F64*)
   nandPower.voltage = 3300;           // 3.3V
@@ -369,6 +379,10 @@ uint32_t Config::getPageAllocationConfig() {
 
 Config::NANDTiming *Config::getNANDTiming() {
   return &nandTiming;
+}
+
+Config::BufferTiming *Config::getBufferNandTiming() {
+  return &bufferTiming;
 }
 
 Config::NANDPower *Config::getNANDPower() {

@@ -42,6 +42,7 @@ typedef enum {
   NAND_DMA_SPEED,
   NAND_DMA_WIDTH,
   NAND_FLASH_TYPE,
+  NAND_BUFFER_FLASH_TYPE,
 } PAL_CONFIG;
 
 typedef enum {
@@ -80,6 +81,15 @@ class Config : public BaseConfig {
   } NANDTiming;
 
   typedef struct {
+    PAGETiming lsb;
+    PAGETiming csb;
+    PAGETiming msb;
+    DMATiming dma0;
+    DMATiming dma1;
+    uint64_t erase;
+  } BufferTiming;
+
+  typedef struct {
     uint64_t voltage;  //!< Unit: mV
     struct {           //!< Unit: uA
       uint64_t read;
@@ -91,8 +101,9 @@ class Config : public BaseConfig {
   } NANDPower;
 
  private:
-  uint32_t channel;  //!< Default: 8
-  uint32_t package;  //!< Default: 4
+  uint32_t channel;     //!< Default: 8
+  uint32_t slcChannel;  //!< Default: 2
+  uint32_t package;     //!< Default: 4
 
   uint32_t die;                 //!< Default: 2
   uint32_t plane;               //!< Default: 1
@@ -103,11 +114,14 @@ class Config : public BaseConfig {
   uint32_t dmaSpeed;            //!< Default: 400
   uint32_t dmaWidth;            //!< Default: 8
   NAND_TYPE nandType;           //!< Default: NAND_MLC
+  NAND_TYPE bufferNANDType;     //!< Default: NAND_SLC
   uint8_t superblock;           //!< Default: All (0x0F)
   uint8_t PageAllocation[4];    //!< Default: CWDP (0x01, 0x02, 0x04, 0x08)
 
   NANDTiming nandTiming;
   NANDPower nandPower;
+
+  BufferTiming bufferTiming;
 
   // Raw variable
   std::string _superblock;
@@ -127,6 +141,7 @@ class Config : public BaseConfig {
   uint32_t getPageAllocationConfig();
 
   NANDTiming *getNANDTiming();
+  BufferTiming *getBufferNandTiming();
   NANDPower *getNANDPower();
 };
 

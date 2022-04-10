@@ -518,12 +518,20 @@ PALStatistics::PALStatistics(SimpleSSD::ConfigReader *c, Latency *l)
 
   InitStats();
 
-  SimpleSSD::PAL::Config::NANDTiming *pTiming = c->getNANDTiming();
+  SimpleSSD::PAL::Config::NANDTiming *pTiming = c->getBufferNandTiming();
   SimpleSSD::PAL::Config::NANDPower *pPower = c->getNANDPower();
 
-  latency[NAND_SLC] = new LatencySLC(*pTiming, *pPower);
-  latency[NAND_MLC] = new LatencyMLC(*pTiming, *pPower);
-  latency[NAND_TLC] = new LatencyTLC(*pTiming, *pPower);
+  switch (c->readInt(SimpleSSD::CONFIG_PAL, SimpleSSD::PAL::NAND_BUFFER_FLASH_TYPE)) {
+    case SimpleSSD::PAL::NAND_SLC:
+      bufferLat = new LatencySLC(*pTiming, *pPower);
+      break;
+    case SimpleSSD::PAL::NAND_MLC:
+      bufferLat = new LatencyMLC(*pTiming, *pPower);
+      break;
+    case SimpleSSD::PAL::NAND_TLC:
+      bufferLat = new LatencyTLC(*pTiming, *pPower);
+      break;
+  }
 
   SampledTick = 0;
   skip = true;
@@ -657,7 +665,7 @@ void PALStatistics::AddLatency(Command &CMD, CPDPBP *CPD, uint32_t dieIdx,
   uint32_t oper = CMD.operation;
   uint32_t chIdx = CPD->Channel;
   uint64_t time_all[TICK_STAT_NUM];
-  uint8_t pageType = lat->GetPageType(CPD->Page);
+  uint8_t pageType = CMD.isFromBuffer ? bufferLat->GetPageType(CPD->Page) : lat->GetPageType(CPD->Page);
   memset(time_all, 0, sizeof(time_all));
 
   /*
@@ -670,19 +678,22 @@ void PALStatistics::AddLatency(Command &CMD, CPDPBP *CPD, uint32_t dieIdx,
   TICK_IOEND, DMA1->TickEnd
   */
 
+ Latency *cur_lat = lat;
+ if (CMD.isFromBuffer) cur_lat = bufferLat;
+
   time_all[TICK_DMA0WAIT] =
       DMA0.StartTick -
       CMD.arrived;  // FETCH_WAIT --> when DMA0 couldn't start immediatly
-  time_all[TICK_DMA0] = lat->GetLatency(CPD->Page, CMD.operation, BUSY_DMA0);
+  time_all[TICK_DMA0] = cur_lat->GetLatency(CPD->Page, CMD.operation, BUSY_DMA0);
   time_all[TICK_DMA0_SUSPEND] = 0;  // no suspend in new design
-  time_all[TICK_MEM] = lat->GetLatency(CPD->Page, CMD.operation, BUSY_MEM);
+  time_all[TICK_MEM] = cur_lat->GetLatency(CPD->Page, CMD.operation, BUSY_MEM);
   time_all[TICK_DMA1WAIT] =
       (MEM.EndTick - MEM.StartTick + 1) -
-      (lat->GetLatency(CPD->Page, CMD.operation, BUSY_DMA0) +
-       lat->GetLatency(CPD->Page, CMD.operation, BUSY_MEM) +
-       lat->GetLatency(CPD->Page, CMD.operation,
+      (cur_lat->GetLatency(CPD->Page, CMD.operation, BUSY_DMA0) +
+       cur_lat->GetLatency(CPD->Page, CMD.operation, BUSY_MEM) +
+       cur_lat->GetLatency(CPD->Page, CMD.operation,
                        BUSY_DMA1));  // --> when DMA1 didn't start immediatly.
-  time_all[TICK_DMA1] = lat->GetLatency(CPD->Page, CMD.operation, BUSY_DMA1);
+  time_all[TICK_DMA1] = cur_lat->GetLatency(CPD->Page, CMD.operation, BUSY_DMA1);
   time_all[TICK_DMA1_SUSPEND] = 0;  // no suspend in new design
   time_all[TICK_FULL] =
       DMA1.EndTick - CMD.arrived + 1;  // D0W+D0+M+D1W+D1 full latency
@@ -714,11 +725,11 @@ void PALStatistics::AddLatency(Command &CMD, CPDPBP *CPD, uint32_t dieIdx,
   Ticks_Total.add(oper, time_all[TICK_FULL]);
   //***********************************************
   // energy = [nW] * [ps] / [10^9] = [pJ]
-  uint64_t energy_dma0 = lat->GetPower(CMD.operation, BUSY_DMA0) *
+  uint64_t energy_dma0 = cur_lat->GetPower(CMD.operation, BUSY_DMA0) *
                          time_all[TICK_DMA0] / 1000000000;
   uint64_t energy_mem =
-      lat->GetPower(CMD.operation, BUSY_MEM) * time_all[TICK_MEM] / 1000000000;
-  uint64_t energy_dma1 = lat->GetPower(CMD.operation, BUSY_DMA1) *
+      cur_lat->GetPower(CMD.operation, BUSY_MEM) * time_all[TICK_MEM] / 1000000000;
+  uint64_t energy_dma1 = cur_lat->GetPower(CMD.operation, BUSY_DMA1) *
                          time_all[TICK_DMA1] / 1000000000;
   Energy_DMA0.add(oper, energy_dma0);
   Energy_MEM.add(oper, energy_mem);

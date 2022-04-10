@@ -120,7 +120,6 @@ void PALOLD::write(Request &req, uint64_t &tick) {
   
   if (req.isHotDataWrite) {
     cmd.isFromBuffer = true;
-    cmd.nandType = SimpleSSD::PAL::NAND_SLC;
   }
 
   std::vector<::CPDPBP> list;
@@ -144,10 +143,9 @@ void PALOLD::write(Request &req, uint64_t &tick) {
 void PALOLD::erase(Request &req, uint64_t &tick) {
   uint64_t finishedAt = tick;
   ::Command cmd(tick, 0, OPER_ERASE, param.superPageSize * param.page);
-  
+
   if (req.isHotDataWrite) {
     cmd.isFromBuffer = true;
-    cmd.nandType = SimpleSSD::PAL::NAND_SLC;
   }
   
   std::vector<::CPDPBP> list;

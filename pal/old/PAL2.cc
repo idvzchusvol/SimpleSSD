@@ -29,9 +29,17 @@ PAL2::PAL2(PALStatistics *statistics, SimpleSSD::PAL::Parameter *p,
   SimpleSSD::PAL::Config::NANDTiming *pTiming = c->getNANDTiming();
   SimpleSSD::PAL::Config::NANDPower *pPower = c->getNANDPower();
 
-  latency[NAND_SLC] = new LatencySLC(*pTiming, *pPower);
-  latency[NAND_MLC] = new LatencyMLC(*pTiming, *pPower);
-  latency[NAND_TLC] = new LatencyTLC(*pTiming, *pPower);
+  switch (c->readInt(SimpleSSD::CONFIG_PAL, SimpleSSD::PAL::NAND_BUFFER_FLASH_TYPE)) {
+    case SimpleSSD::PAL::NAND_SLC:
+      bufferLat = new LatencySLC(*pTiming, *pPower);
+      break;
+    case SimpleSSD::PAL::NAND_MLC:
+      bufferLat = new LatencyMLC(*pTiming, *pPower);
+      break;
+    case SimpleSSD::PAL::NAND_TLC:
+      bufferLat = new LatencyTLC(*pTiming, *pPower);
+      break;
+  }
 
   uint32_t SPDIV =
       c->readUint(SimpleSSD::CONFIG_PAL, SimpleSSD::PAL::NAND_DMA_SPEED) / 50;
@@ -94,7 +102,7 @@ PAL2::PAL2(PALStatistics *statistics, SimpleSSD::PAL::Parameter *p,
     std::map<uint64_t, uint64_t> *tmp;
     // should invoke c->readInt to get NAND_FLASH_TYPE ?
     uint64_t type = c->readInt(SimpleSSD::CONFIG_PAL, SimpleSSD::PAL::NAND_FLASH_TYPE);
-    if (i >= pParam->channel - pParam->slcChannel) type = SimpleSSD::PAL::NAND_SLC;
+    if (i >= pParam->channel - pParam->slcChannel) type = c->readInt(SimpleSSD::CONFIG_PAL, SimpleSSD::PAL::NAND_BUFFER_FLASH_TYPE);
     switch (type) {
       case SimpleSSD::PAL::NAND_SLC:
         tmp = new std::map<uint64_t, uint64_t>;
@@ -143,7 +151,7 @@ PAL2::PAL2(PALStatistics *statistics, SimpleSSD::PAL::Parameter *p,
     std::map<uint64_t, uint64_t> *tmp;
     // should call readInt to get correct NAND FLASH TYPE
     uint64_t type = c->readInt(SimpleSSD::CONFIG_PAL, SimpleSSD::PAL::NAND_FLASH_TYPE);
-    if (i >= slcDieBase) type = SimpleSSD::PAL::NAND_SLC;
+    if (i >= slcDieBase) type = c->readInt(SimpleSSD::CONFIG_PAL, SimpleSSD::PAL::NAND_BUFFER_FLASH_TYPE);
     switch (type) {
       case SimpleSSD::PAL::NAND_SLC:
         tmp = new std::map<uint64_t, uint64_t>;
@@ -234,16 +242,16 @@ void PAL2::TimelineScheduling(Command &req, CPDPBP &reqCPD) {
     uint64_t DMA0tickFrom, MEMtickFrom, DMA1tickFrom;  // starting point
     uint64_t latANTI;                                  // anticipate time slot
     bool conflicts;  // check conflict when scheduling
-    latDMA0 = req.isFromBuffer ? latency[req.nandType]->GetLatency(reqCPD.Page, req.operation, BUSY_DMA0) : 
+    latDMA0 = req.isFromBuffer ? bufferLat->GetLatency(reqCPD.Page, req.operation, BUSY_DMA0) : 
                               lat->GetLatency(reqCPD.Page, req.operation, BUSY_DMA0);
     
-    latMEM = req.isFromBuffer ? latency[req.nandType]->GetLatency(reqCPD.Page, req.operation, BUSY_MEM) :
+    latMEM = req.isFromBuffer ? bufferLat->GetLatency(reqCPD.Page, req.operation, BUSY_MEM) :
                               lat->GetLatency(reqCPD.Page, req.operation, BUSY_MEM);
     
-    latDMA1 = req.isFromBuffer ? latency[req.nandType]->GetLatency(reqCPD.Page, req.operation, BUSY_DMA1) :
+    latDMA1 = req.isFromBuffer ? bufferLat->GetLatency(reqCPD.Page, req.operation, BUSY_DMA1) :
                               lat->GetLatency(reqCPD.Page, req.operation, BUSY_DMA1);
     
-    latANTI = req.isFromBuffer ? latency[req.nandType]->GetLatency(reqCPD.Page, OPER_READ, BUSY_DMA0) :
+    latANTI = req.isFromBuffer ? bufferLat->GetLatency(reqCPD.Page, OPER_READ, BUSY_DMA0) :
                               lat->GetLatency(reqCPD.Page, OPER_READ, BUSY_DMA0);
     
     // Start Finding available Slot
