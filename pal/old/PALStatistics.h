@@ -23,6 +23,9 @@
 #include "util/old/SimpleSSD_types.h"
 
 #include "Latency.h"
+#include "LatencySLC.h"
+#include "LatencyMLC.h"
+#include "LatencyTLC.h"
 #include "PAL2_TimeSlot.h"
 
 #include "sim/config_reader.hh"
@@ -52,7 +55,7 @@ typedef struct _Command {
   bool mergeSnapshot;
   uint64_t size;
   bool isFromBuffer;
-  NAND_TYPE nandType;
+  SimpleSSD::PAL::NAND_TYPE nandType;
 
   _Command()
       : arrived(0),
@@ -62,7 +65,7 @@ typedef struct _Command {
         mergeSnapshot(false),
         size(0),
         isFromBuffer(false),
-        nandType(NAND_MLC) {}
+        nandType(SimpleSSD::PAL::NAND_MLC) {}
   _Command(Tick t, Addr a, PAL_OPERATION op, uint64_t s)
       : arrived(t),
         finished(0),
@@ -71,9 +74,9 @@ typedef struct _Command {
         mergeSnapshot(false),
         size(s),
         isFromBuffer(false),
-        nandType(NAND_MLC) {}
+        nandType(SimpleSSD::PAL::NAND_MLC) {}
   
-  _Command(Tick t, Addr a, PAL_OPERATION op, uint64_t s, bool iFB, NAND_TYPE type)
+  _Command(Tick t, Addr a, PAL_OPERATION op, uint64_t s, bool iFB, SimpleSSD::PAL::NAND_TYPE type)
       : arrived(t),
         finished(0),
         ppn(a),

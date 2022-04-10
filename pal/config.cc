@@ -80,6 +80,7 @@ Config::Config() {
   nandType = NAND_MLC;
 
   // Set NAND timing (Default: MLC, csb is not used)
+  // TODO:: set SLC, MLC, TLC     NAND timing
   nandTiming.lsb.read = 40000000;    // 40us
   nandTiming.lsb.write = 500000000;  // 500us
   nandTiming.csb.read = 0;

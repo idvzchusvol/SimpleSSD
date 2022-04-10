@@ -67,7 +67,7 @@ PageMapping::PageMapping(ConfigReader &c, Parameter &p, PAL::PAL *l,
   bufferBlockPBN.reserve(circleBuffer.totalBlock);
   for (uint32_t i = 0; i < circleBuffer.totalBlock; i++) {
     bufferBlockPBN.at(i) = param.totalPhysicalBlocks - circleBuffer.totalBlock + i;
-    bufferBlocks.emplace_back(Block(param.totalPhysicalBlocks - circleBuffer.totalBlock + i, param.pagesInBlock, param.ioUnitInPage));
+    bufferBlocks.emplace(param.totalPhysicalBlocks - circleBuffer.totalBlock + i, Block(param.totalPhysicalBlocks - circleBuffer.totalBlock + i, param.pagesInBlock, param.ioUnitInPage));
   }
 
   memset(&stat, 0, sizeof(stat));
@@ -654,6 +654,9 @@ void PageMapping::doGarbageCollection(std::vector<uint32_t> &blocksToReclaim,
   for (auto &iter : eraseRequests) {
     beginAt = readFinishedAt;
 
+    // buffer Block
+    iter.isHotDataWrite = fromBuffer;
+
     eraseInternal(iter, beginAt);
 
     eraseFinishedAt = MAX(eraseFinishedAt, beginAt);
@@ -761,7 +764,7 @@ void PageMapping::writeInternal(Request &req, uint64_t &tick, bool sendToPAL) {
 
   // Write data to free block
   if (req.isHotDataWrite) {
-    block = bufferBlocks.find(getLastFreeBufferBlock(req.ioFlag));
+    block = bufferBlocks.find(getLastFreeBufferBlock(tick));
   } else {
     block = blocks.find(getLastFreeBlock(req.ioFlag));
     if (block == blocks.end()) {

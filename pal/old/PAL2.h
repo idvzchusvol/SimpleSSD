@@ -23,6 +23,9 @@
 #include "util/old/SimpleSSD_types.h"
 
 #include "Latency.h"
+#include "LatencySLC.h"
+#include "LatencyMLC.h"
+#include "LatencyTLC.h"
 #include "PALStatistics.h"
 #include "pal/pal.hh"
 
