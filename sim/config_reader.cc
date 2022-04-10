@@ -243,8 +243,8 @@ PAL::Config::NANDTiming *ConfigReader::getNANDTiming() {
   return palConfig.getNANDTiming();
 }
 
-PAL::Config::BufferTiming *ConfigReader::getBufferNandTiming() {
-  return palConfig.getBufferTiming();
+PAL::Config::NANDTiming *ConfigReader::getBufferNandTiming() {
+  return palConfig.getBufferNandTiming();
 }
 
 PAL::Config::NANDPower *ConfigReader::getNANDPower() {

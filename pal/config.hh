@@ -81,15 +81,6 @@ class Config : public BaseConfig {
   } NANDTiming;
 
   typedef struct {
-    PAGETiming lsb;
-    PAGETiming csb;
-    PAGETiming msb;
-    DMATiming dma0;
-    DMATiming dma1;
-    uint64_t erase;
-  } BufferTiming;
-
-  typedef struct {
     uint64_t voltage;  //!< Unit: mV
     struct {           //!< Unit: uA
       uint64_t read;
@@ -118,10 +109,8 @@ class Config : public BaseConfig {
   uint8_t superblock;           //!< Default: All (0x0F)
   uint8_t PageAllocation[4];    //!< Default: CWDP (0x01, 0x02, 0x04, 0x08)
 
-  NANDTiming nandTiming;
+  NANDTiming nandTiming, bufferTiming;
   NANDPower nandPower;
-
-  BufferTiming bufferTiming;
 
   // Raw variable
   std::string _superblock;
@@ -141,7 +130,7 @@ class Config : public BaseConfig {
   uint32_t getPageAllocationConfig();
 
   NANDTiming *getNANDTiming();
-  BufferTiming *getBufferNandTiming();
+  NANDTiming *getBufferNandTiming();
   NANDPower *getNANDPower();
 };
 

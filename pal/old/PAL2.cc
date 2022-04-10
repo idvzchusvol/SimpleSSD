@@ -26,7 +26,7 @@ PAL2::PAL2(PALStatistics *statistics, SimpleSSD::PAL::Parameter *p,
     : pParam(p), lat(l), stats(statistics) {
   uint32_t OriginalSizes[7];
 
-  SimpleSSD::PAL::Config::NANDTiming *pTiming = c->getNANDTiming();
+  SimpleSSD::PAL::Config::NANDTiming *pTiming = c->getBufferNandTiming();
   SimpleSSD::PAL::Config::NANDPower *pPower = c->getNANDPower();
 
   switch (c->readInt(SimpleSSD::CONFIG_PAL, SimpleSSD::PAL::NAND_BUFFER_FLASH_TYPE)) {

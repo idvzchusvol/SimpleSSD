@@ -381,7 +381,7 @@ Config::NANDTiming *Config::getNANDTiming() {
   return &nandTiming;
 }
 
-Config::BufferTiming *Config::getBufferNandTiming() {
+Config::NANDTiming *Config::getBufferNandTiming() {
   return &bufferTiming;
 }
 
