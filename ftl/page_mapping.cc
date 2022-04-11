@@ -38,13 +38,12 @@ PageMapping::PageMapping(ConfigReader &c, Parameter &p, PAL::PAL *l,
       lastFreeBlock(param.pageCountToMaxPerf),
       lastFreeBlockIOMap(param.ioUnitInPage),
       bReclaimMore(false) {
-  circleBuffer.totalBlock = conf.readUint(CONFIG_FTL, FTL_SLC_BUFFER_SIZE);
+  circleBuffer.totalBlock = 1024;
   circleBuffer.totalPage = circleBuffer.totalBlock * param.pagesInBlock;
 
   blocks.reserve(param.totalPhysicalBlocks - circleBuffer.totalBlock);
   table.reserve(param.totalLogicalBlocks * param.pagesInBlock - circleBuffer.totalPage);
 
-  bufferBlocks.reserve(circleBuffer.totalBlock);
 
   // what's difference between totalPhysicalBlocks and totalLogicalBlocks?
 
@@ -62,12 +61,15 @@ PageMapping::PageMapping(ConfigReader &c, Parameter &p, PAL::PAL *l,
     lastFreeBlock.at(i) = getFreeBlock(i);
   }
 
+  debugprint(LOG_FTL_PAGE_MAPPING, "totalPhysicalBlocks=%lld, totalLogicalBlocks=%lld", param.totalPhysicalBlocks, param.totalLogicalBlocks);
+
   lastFreeBlockIndex = 0;
 
-  bufferBlockPBN.reserve(circleBuffer.totalBlock);
+  bufferBlocks.reserve(circleBuffer.totalBlock);
   for (uint32_t i = 0; i < circleBuffer.totalBlock; i++) {
-    bufferBlockPBN.at(i) = param.totalPhysicalBlocks - circleBuffer.totalBlock + i;
-    bufferBlocks.emplace(param.totalPhysicalBlocks - circleBuffer.totalBlock + i, Block(param.totalPhysicalBlocks - circleBuffer.totalBlock + i, param.pagesInBlock, param.ioUnitInPage));
+    uint64_t blockNumber = param.totalPhysicalBlocks - circleBuffer.totalBlock + i;
+    bufferBlockPBN.push_back(blockNumber);
+    bufferBlocks.emplace(blockNumber, Block(blockNumber, param.pagesInBlock, param.ioUnitInPage));
   }
 
   memset(&stat, 0, sizeof(stat));

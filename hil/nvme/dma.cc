@@ -129,7 +129,7 @@ void PRPList::getPRPListFromPRP(uint64_t base, uint64_t size) {
     DMAInitContext *pContext = (DMAInitContext *)context;
     PRPList *pThis = (PRPList *)pContext->pThis;
     uint64_t listPRP;
-    uint64_t listPRPSize;
+    uint64_t listPRPSize = 0;
     uint64_t currentSize = 0;
 
     pThis->callCounter--;

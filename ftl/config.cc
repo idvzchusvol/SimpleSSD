@@ -157,9 +157,6 @@ uint64_t Config::readUint(uint32_t idx) {
     case FTL_GC_D_CHOICE_PARAM:
       ret = dChoiceParam;
       break;
-    case FTL_SLC_BUFFER_SIZE:
-      ret = bufferSize;
-      break;
   }
 
   return ret;
