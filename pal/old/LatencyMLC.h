@@ -19,6 +19,7 @@
 #define __LatencyMLC_h__
 
 #include "Latency.h"
+#include "util/simplessd.hh"
 
 class LatencyMLC : public Latency {
  public:

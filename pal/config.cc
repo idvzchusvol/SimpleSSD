@@ -91,13 +91,13 @@ Config::Config() {
   nandTiming.msb.write = 1300000000;  // 1300us
   nandTiming.erase = 3500000000;      // 3.5ms
 
-  bufferTiming.lsb.read = 3000000;
-  bufferTiming.lsb.write = 80000000;
+  bufferTiming.lsb.read = 3000000;    // 3us
+  bufferTiming.lsb.write = 80000000;  // 80us
   bufferTiming.csb.read = 0;
   bufferTiming.csb.write = 0;
   bufferTiming.msb.read = 0;
   bufferTiming.msb.write = 0;
-  bufferTiming.erase = 1000000000;
+  bufferTiming.erase = 1000000000;    // 1ms
 
   // Set NAND power (From: Micron's MT29F64*)
   nandPower.voltage = 3300;           // 3.3V

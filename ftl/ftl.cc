@@ -40,7 +40,7 @@ FTL::FTL(ConfigReader &c, DRAM::AbstractDRAM *d) : conf(c), pDRAM(d) {
   param.ioUnitInPage = palparam->pageInSuperPage;
   param.pageCountToMaxPerf = palparam->superBlock / palparam->block;
 
-  debugprint(LOG_FTL, "pageCountToMaxPerf=%lld", param.pageCountToMaxPerf);
+  debugprint(LOG_FTL, "totalPhysivalBlocks = %lld, pageCountToMaxPerf=%lld", param.totalPhysicalBlocks, param.pageCountToMaxPerf);
 
   switch (conf.readInt(CONFIG_FTL, FTL_MAPPING_MODE)) {
     case PAGE_MAPPING:

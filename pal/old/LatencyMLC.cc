@@ -80,5 +80,7 @@ uint64_t LatencyMLC::GetLatency(uint32_t AddrPage, uint8_t Oper, uint8_t Busy) {
       break;
   }
 
+  SimpleSSD::panic("should not reach here");
+
   return 10;
 }

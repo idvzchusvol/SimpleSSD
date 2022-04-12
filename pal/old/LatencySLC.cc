@@ -69,5 +69,7 @@ uint64_t LatencySLC::GetLatency(uint32_t, uint8_t Oper, uint8_t Busy) {
       break;
   }
 
+  SimpleSSD::panic("should not reach here");
+
   return 10;
 }
